@@ -17,12 +17,12 @@ import { RecentTransactions } from 'components/App/Transactions/TransactionsModa
 import { useTheme } from '@pancakeswap/hooks'
 import { useMenuTab, WalletView } from 'components/Menu/UserMenu/providers/MenuTabProvider'
 import { TabsComponent } from 'components/Menu/UserMenu/WalletModal'
-import { usePrivy } from '@privy-io/react-auth'
 import { ASSET_CDN } from 'config/constants/endpoints'
 import { useAddressBalance } from 'hooks/useAddressBalance'
 import { useDomainNameForAddress } from 'hooks/useDomain'
+import { usePancakeSwapEns } from 'hooks/usePancakeSwapEns'
 import { useRouter } from 'next/router'
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import styled from 'styled-components'
 import { formatAmount } from 'utils/formatInfoNumbers'
 import { ClaimGiftConfirmView } from 'views/Gift/components/ClaimGiftConfirmView'
@@ -35,6 +35,7 @@ import { AssetsList } from './AssetsList'
 import { SendAssets } from './SendAssets'
 import { SEND_ENTRY, ViewState } from './type'
 import { CopyAddress } from './WalletCopyButton'
+import { GetEnsModal } from './GetEnsModal'
 import { useWalletModalV2ViewState } from './WalletModalV2ViewStateProvider'
 
 interface WalletModalProps {
@@ -98,6 +99,20 @@ const OptionBox = styled(Box)`
   cursor: pointer;
 `
 
+const GetEnsButton = styled(Button)`
+  width: 100%;
+  height: 48px;
+  background: linear-gradient(90deg, #7645d9 0%, #5121b1 100%);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-top: 12px;
+
+  &:hover:not(:disabled) {
+    opacity: 0.85;
+  }
+`
+
 const WalletModal: React.FC<WalletModalProps> = ({ account, onDismiss, isOpen, onReceiveClick, onDisconnect }) => {
   const { viewState } = useWalletModalV2ViewState()
 
@@ -136,8 +151,9 @@ export const WalletContent = ({
   const { isMobile } = useMatchBreakpoints()
   const { viewState, setViewState, goBack, setSendEntry } = useWalletModalV2ViewState()
   const { theme } = useTheme()
-  const { authenticated, ready, user, createWallet, setWalletRecovery, enrollInMfa } = usePrivy()
   const { domainName, avatar } = useDomainNameForAddress(account ?? '')
+  const { subdomain: pancakeSwapEns, refetch: refetchPancakeSwapEns } = usePancakeSwapEns(account)
+  const [isGetEnsModalOpen, setIsGetEnsModalOpen] = useState(false)
 
   // Fetch balances using the hook we created
   const { balances, isLoading, totalBalanceUsd } = useAddressBalance(account, {
@@ -159,6 +175,20 @@ export const WalletContent = ({
     },
     [setView],
   )
+
+  const handleGetEnsClick = useCallback(() => {
+    setIsGetEnsModalOpen(true)
+  }, [])
+
+  const handleEnsModalDismiss = useCallback(() => {
+    setIsGetEnsModalOpen(false)
+    // Refetch PancakeSwap ENS after modal closes in case user minted a new subdomain
+    refetchPancakeSwapEns()
+  }, [refetchPancakeSwapEns])
+
+  // Determine which name/avatar to display (prioritize PancakeSwap ENS, then regular ENS)
+  const displayName = pancakeSwapEns || domainName
+  const displayAvatar = pancakeSwapEns ? undefined : avatar
 
   const actionView = useMemo(() => {
     if (viewState === ViewState.GIFT_INFO_DETAIL) return <GiftInfoDetailView />
@@ -195,7 +225,7 @@ export const WalletContent = ({
       overflowY={isMobile ? undefined : 'auto'}
     >
       {account ? (
-        <FlexGap mb="10px" gap="8px" justifyContent="space-between" alignItems="center" paddingRight="16px" mt="8px">
+        <FlexGap gap="8px" justifyContent="space-between" alignItems="center" paddingRight="16px" mt="8px">
           {viewState > ViewState.SEND_ASSETS && (
             <Button
               variant="tertiary"
@@ -210,8 +240,8 @@ export const WalletContent = ({
           <CopyAddress
             tooltipMessage={t('Copied')}
             account={account || ''}
-            ensName={domainName || undefined}
-            ensAvatar={avatar}
+            ensName={displayName || undefined}
+            ensAvatar={displayAvatar}
           />
           {viewState <= ViewState.SEND_ASSETS && (
             <FlexGap>
@@ -222,6 +252,12 @@ export const WalletContent = ({
           )}
         </FlexGap>
       ) : null}
+
+      {account && !pancakeSwapEns && viewState === ViewState.WALLET_INFO && (
+        <Box padding="0 16px">
+          <GetEnsButton onClick={handleGetEnsClick}>Get Free PancakeSwap ENS ✨</GetEnsButton>
+        </Box>
+      )}
 
       <CancelGiftProvider>
         <Box padding={isMobile ? '0' : '0 16px 16px'}>
@@ -367,6 +403,8 @@ export const WalletContent = ({
           )}
         </>
       )}
+
+      {account && <GetEnsModal isOpen={isGetEnsModalOpen} onDismiss={handleEnsModalDismiss} account={account} />}
     </Box>
   )
 }

@@ -26,6 +26,7 @@ import useTokenBalance, { useBSCCakeBalance } from 'hooks/useTokenBalance'
 import { formatBigInt, getFullDisplayBalance } from '@pancakeswap/utils/formatBalance'
 import InternalLink from 'components/Links'
 import { useDomainNameForAddress } from 'hooks/useDomain'
+import { usePancakeSwapEns } from 'hooks/usePancakeSwapEns'
 import { useState } from 'react'
 import { isMobile } from 'react-device-detect'
 import { getBlockExploreLink, getBlockExploreName } from 'utils'
@@ -49,7 +50,14 @@ const WalletInfo: React.FC<WalletInfoProps> = ({ hasLowNativeBalance, onDismiss 
   const { chainId } = useActiveChainId()
   const { address: account, chain } = useAccount()
   const { domainName, avatar } = useDomainNameForAddress(account ?? '')
+  const { subdomain: pancakeSwapEns } = usePancakeSwapEns(account)
   const isBSC = chainId === ChainId.BSC
+
+  console.log('pancakeSwapEns', pancakeSwapEns)
+
+  // Determine which name/avatar to display (prioritize PancakeSwap ENS, then regular ENS)
+  const displayName = pancakeSwapEns || domainName
+  const displayAvatar = pancakeSwapEns ? undefined : avatar
   const bnbBalance = useBalance({ address: account ?? undefined, chainId: ChainId.BSC })
   const nativeBalance = useBalance({ address: account ?? undefined, query: { enabled: !isBSC } })
   const native = useNativeCurrency()
@@ -104,8 +112,8 @@ const WalletInfo: React.FC<WalletInfoProps> = ({ hasLowNativeBalance, onDismiss 
         <CopyAddress
           tooltipMessage={t('Copied')}
           account={account ?? undefined}
-          ensName={domainName || undefined}
-          ensAvatar={avatar}
+          ensName={displayName || undefined}
+          ensAvatar={displayAvatar}
         />
       </Box>
       {hasLowNativeBalance && (
