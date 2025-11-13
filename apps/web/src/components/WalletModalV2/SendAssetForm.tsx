@@ -37,7 +37,7 @@ import { SendGiftToggle } from 'views/Gift/components/SendGiftToggle'
 import { CHAINS_WITH_GIFT_CLAIM } from 'views/Gift/constants'
 import { SendGiftContext, useSendGiftContext } from 'views/Gift/providers/SendGiftProvider'
 import { useUserInsufficientBalanceLight } from 'views/SwapSimplify/hooks/useUserInsufficientBalance'
-import { useAccount, useEnsAddress, usePublicClient, useSendTransaction } from 'wagmi'
+import { useAccount, useEnsAddress, useEnsAvatar, usePublicClient, useSendTransaction } from 'wagmi'
 import { ActionButton } from './ActionButton'
 import SendTransactionFlow from './SendTransactionFlow'
 import { ViewState } from './type'
@@ -81,6 +81,27 @@ const ClearButton = styled(IconButton)`
   height: 20px;
 `
 
+const EnsAvatarWrapper = styled(Box)`
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: ${({ theme }) => theme.colors.backgroundAlt};
+`
+
+const EnsAvatar = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`
+
 const ErrorMessage = styled(Text)`
   color: ${({ theme }) => theme.colors.failure};
   font-size: 14px;
@@ -101,6 +122,7 @@ export const SendAssetForm: React.FC<SendAssetFormProps> = ({ asset, onViewState
   const [addressFieldInput, setAddressFieldInput] = useState<string | null>(null)
   const debouncedAddress = useDebounce(addressFieldInput, 500)
   const { data: ensAddress } = useEnsAddress({ name: debouncedAddress || undefined, chainId: ChainId.ETHEREUM })
+  const { data: ensAvatar } = useEnsAvatar({ name: debouncedAddress || undefined, chainId: ChainId.ETHEREUM })
   const [amount, setAmount] = useState('')
   const [addressError, setAddressError] = useState('')
   const [estimatedFee, setEstimatedFee] = useState<string | null>(null)
@@ -375,11 +397,16 @@ export const SendAssetForm: React.FC<SendAssetFormProps> = ({ asset, onViewState
               <Box>
                 <AddressInputWrapper>
                   <Box position="relative">
+                    {ensAvatar && (
+                      <EnsAvatarWrapper>
+                        <EnsAvatar src={ensAvatar} alt="ENS Avatar" />
+                      </EnsAvatarWrapper>
+                    )}
                     <Input
                       value={addressFieldInput ?? ''}
                       onChange={handleAddressChange}
                       placeholder="Recipient address"
-                      style={{ height: '64px' }}
+                      style={{ height: '64px', paddingLeft: ensAvatar ? '60px' : '16px' }}
                       isError={Boolean(addressError)}
                     />
                     {addressFieldInput && (
