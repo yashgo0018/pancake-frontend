@@ -39,6 +39,7 @@ import { SendGiftContext, useSendGiftContext } from 'views/Gift/providers/SendGi
 import { useUserInsufficientBalanceLight } from 'views/SwapSimplify/hooks/useUserInsufficientBalance'
 import { useAccount, useEnsAddress, useEnsAvatar, usePublicClient, useSendTransaction } from 'wagmi'
 import { ActionButton } from './ActionButton'
+import { EnsMetadataDisplay } from './EnsMetadataDisplay'
 import SendTransactionFlow from './SendTransactionFlow'
 import { ViewState } from './type'
 
@@ -422,6 +423,8 @@ export const SendAssetForm: React.FC<SendAssetFormProps> = ({ asset, onViewState
                   </Box>
                 </AddressInputWrapper>
                 {addressError && <ErrorMessage>{addressError}</ErrorMessage>}
+
+                <EnsMetadataDisplay ensName={debouncedAddress || undefined} chainId={ChainId.ETHEREUM} />
               </Box>
             )}
 
